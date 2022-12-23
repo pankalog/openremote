@@ -4,15 +4,28 @@ import {LngLatLike, Map as MapGL, MapboxOptions as OptionsGL, Marker as MarkerGL
     NavigationControl,
     GeolocateControl,
     Control,
-    IControl} from "maplibre-gl";
+    IControl,
+    Popup,
+    GeoJSONSource } from "maplibre-gl";
 import MaplibreGeocoder from "@maplibre/maplibre-gl-geocoder";
 import '@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css';
 import {debounce} from "lodash";
-import {ControlPosition, OrMapClickedEvent, OrMapLoadedEvent, OrMapLongPressEvent, OrMapGeocoderChangeEvent, ViewSettings} from "./index";
+import {
+    ControlPosition,
+    OrMapClickedEvent,
+    OrMapLoadedEvent,
+    OrMapLongPressEvent,
+    OrMapGeocoderChangeEvent,
+    ViewSettings,
+    OrMapMarkerClickedEvent, OrMapMarkerAsset
+} from "./index";
 import {
     OrMapMarker
 } from "./markers/or-map-marker";
 import {getLatLngBounds, getLngLat} from "./util";
+import { Asset, AssetModelUtil } from "@openremote/model";
+import {getAssetDescriptorIconTemplate, OrIcon} from "@openremote/or-icon";
+import {html} from "lit";
 const mapboxJsStyles = require("mapbox.js/dist/mapbox.css");
 const maplibreGlStyles = require("maplibre-gl/dist/maplibre-gl.css");
 const maplibreGeoCoderStyles = require("@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css");
@@ -38,6 +51,13 @@ export class MapWidget {
     protected _controls?: (Control | IControl | [Control | IControl, ControlPosition?])[];
     protected _clickHandlers: Map<OrMapMarker, (ev: MouseEvent) => void> = new Map();
     protected _geocoder?: any;
+    protected popup: Popup | undefined = undefined;
+    protected popupClusterId: string | undefined = undefined;
+
+    protected _pointsMap: any = {
+        type: "FeatureCollection",
+        features: []
+    };
 
     constructor(type: MapType, showGeoCodingControl: boolean, styleParent: Node, mapContainer: HTMLElement) {
         this._type = type;
@@ -350,6 +370,14 @@ export class MapWidget {
                 }, 300);
                 this._mapGl!.addControl(this._geocoder, 'top-left');
 
+                this._mapGl!.addSource('mapPoints', {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: []
+                    }
+                });
+
                 // There's no callback parameter in the options of the MaplibreGeocoder,
                 // so this is how we get the selected result.
                 this._geocoder._inputEl.addEventListener("change", () => {
@@ -407,6 +435,182 @@ export class MapWidget {
         if (marker.hasPosition()) {
             this._updateMarkerElement(marker, true);
         }
+    }
+
+    public loadPoints() {
+        if (!this._mapGl) {
+            this.load();
+        } else {
+            if (this._mapGl.getSource('mapPoints')) {
+                let s = this._mapGl.getSource('mapPoints');
+                this._mapGl.removeSource('mapPoints');
+            }
+            this._mapGl.addSource('mapPoints', {
+                'type': 'geojson',
+                'cluster': true,
+                'clusterMaxZoom': 40, // Max zoom to cluster points on
+                'clusterRadius': 50,
+                'data': this._pointsMap
+            });
+
+            if (!this._mapGl.getLayer('unclustered-point')) {
+                this._mapGl.addLayer({
+                    id: 'unclustered-point',
+                    type: 'circle',
+                    source: 'mapPoints',
+                    filter: ['!', ['has', 'point_count']],
+                    paint: {
+                        'circle-color': '#11b4da',
+                        'circle-radius': 4,
+                        'circle-stroke-width': 1,
+                        'circle-stroke-color': '#fff'
+                    }
+                });
+            }
+
+            if (!this._mapGl.getLayer('clusters')) {
+                this._mapGl.addLayer({
+                    id: 'clusters',
+                    type: 'circle',
+                    source: 'mapPoints',
+                    filter: ['has', 'point_count'],
+                    paint: {
+                        'circle-color': [
+                            'step',
+                            ['get', 'point_count'],
+                            '#51bbd6',
+                            100,
+                            '#f1f075',
+                            750,
+                            '#f28cb1'
+                        ],
+                        'circle-radius': [
+                            'step',
+                            ['get', 'point_count'],
+                            20,
+                            100,
+                            30,
+                            750,
+                            40
+                        ]
+                    }
+                });
+            }
+
+            if (!this._mapGl.getLayer('cluster-count')) {
+                this._mapGl.addLayer({
+                    id: 'cluster-count',
+                    type: 'symbol',
+                    source: 'mapPoints',
+                    filter: ['has', 'point_count'],
+                    layout: {
+                        'text-field': ['get', 'point_count_abbreviated'],
+                        'text-font': ['Open Sans Bold'],
+                        'text-size': 12
+                    }
+                });
+            }
+
+            this._mapGl.on('click', 'unclustered-point', (e) => {
+                if (e && e.features && e.features.length > 0 && e.features[0].properties && e.lngLat) {
+                    const coordinates = e.lngLat;
+
+                    while (Math.abs(e.lngLat.lng - coordinates.lng) > 180) {
+                        coordinates.lng += e.lngLat.lng > coordinates.lng ? 360 : -360;
+                    }
+
+                    let marker: OrMapMarkerAsset = new OrMapMarkerAsset();
+                    marker.asset = JSON.parse(e.features[0].properties.asset);
+
+                    this._mapContainer.dispatchEvent(new OrMapMarkerClickedEvent(marker));
+                }
+            });
+
+            this._mapGl.on('zoom', () => {
+                if (this.popup && this.popup.isOpen()) {
+                    console.log('need to close popup!');
+                    this.popup.remove();
+                    this.popupClusterId = undefined;
+                }
+            });
+
+            this._mapGl.on('click', 'clusters', (e) => {
+                console.log(e);
+                if (this._mapGl) {
+                    const features = this._mapGl.queryRenderedFeatures(e.point, {
+                        layers: ['clusters']
+                    });
+
+                    let clusterId = features[0].properties!.cluster_id;
+
+                    if ((this.popupClusterId && this.popupClusterId !== clusterId) || !this.popupClusterId) {
+                        this.popupClusterId = clusterId;
+
+                        let sourcePoints: GeoJSONSource = (this._mapGl.getSource('mapPoints') as GeoJSONSource);
+                        let point_count = features[0].properties!.point_count;
+
+                        sourcePoints.getClusterLeaves(clusterId, point_count, 0, (err, aFeatures) => {
+                            if (this._mapGl) {
+                                let queryAssets: Asset[] = aFeatures.map(feature => {
+                                    return feature.properties!.asset;
+                                });
+
+                                let assetsByType: {assetType: string, assets: Asset[]}[] = [];
+
+                                queryAssets.forEach((asset: Asset) => {
+                                    if (asset.type) {
+                                        let index = assetsByType.findIndex(assetByType => {
+                                            return assetByType.assetType === asset.type;
+                                        });
+                                        if (index !== -1) {
+                                            assetsByType[index].assets.push(asset);
+                                        } else {
+                                            assetsByType.push(
+                                                {
+                                                    assetType: asset.type,
+                                                    assets: [asset]
+                                                }
+                                            );
+                                        }
+                                    }
+                                });
+
+                                let result = '<div>';
+
+                                assetsByType.forEach(assetByType => {
+                                    const descriptor = AssetModelUtil.getAssetDescriptor(assetByType.assetType);
+                                    let icon = AssetModelUtil.getAssetDescriptorIcon(descriptor, undefined);
+                                    let color = AssetModelUtil.getAssetDescriptorColour(descriptor, undefined);
+                                    result += `<div><or-icon style="--or-icon-fill: ${color ? "#" + color : "unset"}" icon="${icon}"></or-icon> ${ assetByType.assetType } : ${ assetByType.assets.length }</div><br />`;
+                                });
+                                result += '</div>';
+
+                                this.popup = new Popup({ offset: 25, maxWidth: "250px" })
+                                    .setLngLat([e.lngLat.lng, e.lngLat.lat])
+                                    .setHTML(
+                                        result
+                                    )
+                                    .addTo(this._mapGl);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    }
+    public addMark(assetId: string, assetName: string, long: number, lat: number, asset: Asset) {
+        this._pointsMap.features.push({
+            type: 'Feature',
+            properties: {
+                name: assetName,
+                id: assetId,
+                asset: asset
+            },
+            geometry: {
+                type: "Point",
+                coordinates: [ long, lat ]
+            }
+        });
     }
 
     public removeMarker(marker: OrMapMarker) {

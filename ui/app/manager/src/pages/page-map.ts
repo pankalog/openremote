@@ -181,6 +181,8 @@ export class PageMap extends Page<MapStateKeyed> {
     protected assetSubscriptionId: string;
     protected attributeSubscriptionId: string;
 
+    protected locationAssets: Asset[] = [];
+
     protected getAttributesOfInterest(): (string | WellknownAttributes)[] {
         // Extract all label attributes configured in marker config
         let markerLabelAttributes = [];
@@ -250,31 +252,39 @@ export class PageMap extends Page<MapStateKeyed> {
             if (response.data) {
                 const assets = response.data;
 
-                this._store.dispatch(setAssets(assets));
-
-                const assetSubscriptionId = await manager.events.subscribeAssetEvents(undefined, false, (event) => {
-                    this._store.dispatch(assetEventReceived(event));
+                assets.forEach((asset: Asset) => {
+                   if (this._map.addMarker(asset)) {
+                       this.locationAssets.push(asset);
+                   };
                 });
 
-                if (!this.isConnected || realm !== this._realmSelector(this.getState())) {
+                this._map.loadPoints();
+
+                //this._store.dispatch(setAssets(assets));
+
+                /*const assetSubscriptionId = await manager.events.subscribeAssetEvents(undefined, false, (event) => {
+                    this._store.dispatch(assetEventReceived(event));
+                });*/
+
+                /*if (!this.isConnected || realm !== this._realmSelector(this.getState())) {
                     manager.events.unsubscribe(assetSubscriptionId);
                     return;
-                }
+                }*/
 
-                this.assetSubscriptionId = assetSubscriptionId;
+                //this.assetSubscriptionId = assetSubscriptionId;
 
-                const attributeSubscriptionId = await manager.events.subscribeAttributeEvents(undefined, false, (event) => {
+                /*const attributeSubscriptionId = await manager.events.subscribeAttributeEvents(undefined, false, (event) => {
                     this._store.dispatch(attributeEventReceived([attrsOfInterest, event]));
-                });
+                });*/
 
-                if (!this.isConnected || realm !== this._realmSelector(this.getState())) {
+                /*if (!this.isConnected || realm !== this._realmSelector(this.getState())) {
                     this.assetSubscriptionId = undefined;
                     manager.events.unsubscribe(assetSubscriptionId);
                     manager.events.unsubscribe(attributeSubscriptionId);
                     return;
-                }
+                }*/
 
-                this.attributeSubscriptionId = attributeSubscriptionId;
+                //this.attributeSubscriptionId = attributeSubscriptionId;
             }
         } catch (e) {
             console.error("Failed to subscribe to assets", e)
@@ -372,6 +382,7 @@ export class PageMap extends Page<MapStateKeyed> {
     }
 
     public connectedCallback() {
+        console.log('connect...');
         super.connectedCallback();
         this.addEventListener(OrMapMarkerClickedEvent.NAME, this.onMapMarkerClick);
         this.addEventListener(OrMapClickedEvent.NAME, this.onMapClick);
@@ -385,13 +396,24 @@ export class PageMap extends Page<MapStateKeyed> {
     }
 
     stateChanged(state: MapStateKeyed) {
+        console.log('statechanged');
+        console.log(state);
         this._assets = this._getMapAssets(state);
         this._currentAsset = this._getCurrentAsset(state);
+
+        const currentId = state.app.params ? state.app.params.id : undefined;
+
+        this._currentAsset = this.locationAssets.find((asset) => asset.id === currentId);
+
         this.getRealmState(state);
     }
 
     protected onMapMarkerClick(e: OrMapMarkerClickedEvent) {
-        const asset = (e.detail.marker as OrMapMarkerAsset).asset;
+        console.log('catched ');
+        console.log(e);
+        const asset: Asset = (e.detail.marker as OrMapMarkerAsset).asset;
+        console.log(asset);
+        console.log(asset["id"]);
         router.navigate(getMapRoute(asset.id));
     }
 

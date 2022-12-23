@@ -7,7 +7,7 @@ import {MapWidget} from "./mapwidget";
 import {style} from "./style";
 import "./markers/or-map-marker";
 import "./markers/or-map-marker-asset";
-import {OrMapMarker, OrMapMarkerChangedEvent} from "./markers/or-map-marker";
+import {OrMapMarker, OrMapMarkerChangedEvent, OrMapMarkerClickedEvent} from "./markers/or-map-marker";
 import * as Util from "./util";
 import {
     InputType,
@@ -18,6 +18,9 @@ import {
 import {OrMwcDialog, showDialog} from "@openremote/or-mwc-components/or-mwc-dialog";
 import {getMarkerIconAndColorFromAssetType} from "./util";
 import {i18next} from "@openremote/or-translate";
+import {
+    Asset
+} from "@openremote/model";
 
 // Re-exports
 export {Util, LngLatLike};
@@ -459,6 +462,20 @@ export class OrMap extends LitElement {
         return this._markers;
     }
 
+    public addMarker(asset: Asset): boolean {
+        let res = asset.attributes?.hasOwnProperty("location");
+        if (res && asset.attributes && asset.attributes.location.value) {
+            let coordinates = asset.attributes.location.value;
+            this._map?.addMark(asset.id ? asset.id : '', asset.name ? asset.name : '', coordinates.coordinates[0], coordinates.coordinates[1], asset);
+            return true;
+        }
+        return false;
+    }
+
+    public loadPoints() {
+        this._map?.loadPoints();
+    }
+
     public connectedCallback() {
         super.connectedCallback();
     }
@@ -517,6 +534,11 @@ export class OrMap extends LitElement {
                     this._processNewMarkers(info.addedNodes);
                     this._processRemovedMarkers(info.removedNodes);
                 });
+                //this.addEventListener(OrMapMarkerClickedEvent.NAME, this.onMapMarkerClick);
+
+                /*this._mapContainer?.addEventListener(OrMapMarkerClickedEvent.NAME, (e: OrMapMarkerClickedEvent) => {
+                    this.dispatchEvent(e);
+                })*/
             });
         }
 
