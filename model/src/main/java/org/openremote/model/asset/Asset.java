@@ -557,4 +557,5 @@ public abstract class Asset<T extends Asset<?>> implements IdentifiableEntity<T>
         getAttributes().getOrCreate(MODEL).setValue(model);
         return (T) this;
     }
+
 }

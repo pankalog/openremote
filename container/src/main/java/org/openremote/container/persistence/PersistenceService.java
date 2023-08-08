@@ -43,6 +43,7 @@ import org.openremote.model.PersistenceEvent;
 import org.openremote.model.apps.ConsoleAppConfig;
 import org.openremote.model.asset.Asset;
 import org.openremote.model.asset.AssetDescriptor;
+import org.openremote.model.asset.CustomAssetType;
 import org.openremote.model.asset.UserAssetLink;
 import org.openremote.model.asset.impl.UnknownAsset;
 import org.openremote.model.dashboard.Dashboard;
@@ -331,6 +332,7 @@ public class PersistenceService implements ContainerService, Consumer<Persistenc
         entityClasses.add(AssetDatapoint.class.getName());
         entityClasses.add(SentNotification.class.getName());
         entityClasses.add(AssetPredictedDatapoint.class.getName());
+        entityClasses.add(CustomAssetType.class.getName());
         entityClasses.add(Realm.class.getName());
         entityClasses.add(User.class.getName());
         entityClasses.add(UserAttribute.class.getName());
@@ -414,6 +416,15 @@ public class PersistenceService implements ContainerService, Consumer<Persistenc
             entityManagerConsumer.accept(entityManager);
             return null;
         });
+    }
+
+    public void doQuery(String sqlString) {
+        EntityManager em = createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+        Query query = em.createNativeQuery(sqlString);
+        query.executeUpdate();
+        tx.commit();
     }
 
     public <R> R doReturningTransaction(Function<EntityManager, R> entityManagerFunction) {

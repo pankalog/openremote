@@ -81,6 +81,7 @@ public class AssetDescriptor<T extends Asset<?>> implements NameHolder {
     protected Class<T> type;
     protected String icon;
     protected String colour;
+    protected boolean custom;
 
     AssetDescriptor() {}
 
@@ -93,6 +94,18 @@ public class AssetDescriptor<T extends Asset<?>> implements NameHolder {
         this.icon = icon;
         this.colour = colour;
         this.type = type;
+    }
+
+    /**
+     * Construct an instance using the {@link Class#getSimpleName} value of the specified type as the descriptor name,
+     * the {@link Class#getSimpleName} must therefore be unique enough to not clash with other {@link AssetDescriptor}s.
+     */
+    public AssetDescriptor(String name, String icon, String colour, Class<T> type, boolean custom) {
+        this.name = name;
+        this.icon = icon;
+        this.colour = colour;
+        this.type = type;
+        this.custom = custom;
     }
 
     /**

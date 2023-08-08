@@ -38,6 +38,7 @@ import org.openremote.model.Container;
 import org.openremote.model.ContainerService;
 import org.openremote.model.PersistenceEvent;
 import org.openremote.model.asset.*;
+import org.openremote.model.asset.impl.CustomAsset;
 import org.openremote.model.asset.impl.GroupAsset;
 import org.openremote.model.attribute.Attribute;
 import org.openremote.model.attribute.AttributeEvent;
@@ -642,7 +643,7 @@ public class AssetStorageService extends RouteBuilder implements ContainerServic
             LOG.finest("Merging asset: " + asset);
         }
 
-        return persistenceService.doReturningTransaction(em -> {
+        T result = persistenceService.doReturningTransaction(em -> {
 
             long startTime = System.currentTimeMillis();
             String gatewayId = gatewayService.getLocallyRegisteredGatewayId(asset.getId(), asset.getParentId());
@@ -827,6 +828,13 @@ public class AssetStorageService extends RouteBuilder implements ContainerServic
 
             return updatedAsset;
         });
+
+        if (asset instanceof CustomAsset && asset.getId() == null) {
+            // Make sure the correct type is persisted
+            persistenceService.doQuery("UPDATE ASSET SET type = '" + asset.getType() + "' WHERE type = 'CustomAsset';");
+        }
+
+        return result;
     }
 
     /**

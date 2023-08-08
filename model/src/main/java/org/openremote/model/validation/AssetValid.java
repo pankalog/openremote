@@ -20,6 +20,7 @@
 package org.openremote.model.validation;
 
 import org.openremote.model.asset.Asset;
+import org.openremote.model.asset.impl.UnknownAsset;
 import org.openremote.model.attribute.Attribute;
 import org.openremote.model.asset.AssetTypeInfo;
 import org.openremote.model.util.TsIgnore;
@@ -76,6 +77,9 @@ public @interface AssetValid {
 
         @Override
         public boolean isValid(Asset<?> value, ConstraintValidatorContext context) {
+            if (value instanceof UnknownAsset) {
+                return true;
+            }
 
             String type = value.getType();
             AssetTypeInfo assetModelInfo = ValueUtil.getAssetInfo(type).orElse(null);

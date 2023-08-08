@@ -32,6 +32,7 @@ import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator;
 import org.hibernate.internal.util.SerializationHelper;
 import org.openremote.model.AssetModelProvider;
+import org.openremote.model.CustomAssetModelProvider;
 import org.openremote.model.ModelDescriptor;
 import org.openremote.model.ModelDescriptors;
 import org.openremote.model.StandardModelProvider;
@@ -41,6 +42,7 @@ import org.openremote.model.asset.AssetTypeInfo;
 import org.openremote.model.asset.agent.Agent;
 import org.openremote.model.asset.agent.AgentDescriptor;
 import org.openremote.model.asset.agent.AgentLink;
+import org.openremote.model.asset.impl.CustomAsset;
 import org.openremote.model.asset.impl.UnknownAsset;
 import org.openremote.model.attribute.Attribute;
 import org.openremote.model.syslog.SyslogCategory;
@@ -128,6 +130,7 @@ public class ValueUtil {
     public static Logger LOG = SyslogCategory.getLogger(MODEL_AND_VALUES, ValueUtil.class);
     public static ObjectMapper JSON;
     protected static List<AssetModelProvider> assetModelProviders = new ArrayList<>(Collections.singletonList(new StandardModelProvider()));
+    protected static List<CustomAssetModelProvider> customAssetModelProviders = new ArrayList<>();
     protected static Map<Class<? extends Asset<?>>, AssetTypeInfo> assetInfoMap;
     protected static Map<String, Class<? extends Asset<?>>> assetTypeMap;
     protected static Map<String, Class<? extends AgentLink<?>>> agentLinkMap;
@@ -136,9 +139,11 @@ public class ValueUtil {
     protected static Validator validator;
     protected static JsonSchemaGenerator generator;
 
+
     static {
         // Find all service loader registered asset model providers
         ServiceLoader.load(AssetModelProvider.class).forEach(ValueUtil.assetModelProviders::add);
+        ServiceLoader.load(CustomAssetModelProvider.class).forEach(ValueUtil.customAssetModelProviders::add);
         initialise();
     }
 
@@ -529,7 +534,27 @@ public class ValueUtil {
     }
 
     public static AssetTypeInfo[] getAssetInfos(String parentType) {
-        return assetInfoMap.values().toArray(new AssetTypeInfo[0]);
+        List<AssetTypeInfo> assetTypeInfos = new ArrayList<>(assetInfoMap.values());
+        assetTypeInfos.addAll(List.of(getCustomAssetInfos()));
+        return assetTypeInfos.toArray(new AssetTypeInfo[0]);
+    }
+
+    public static AssetTypeInfo[] getCustomAssetInfos() {
+        List<AssetTypeInfo> assetTypeInfos = new ArrayList<>();
+        AssetTypeInfo info = assetInfoMap.get(CustomAsset.class);
+        for (CustomAssetModelProvider provider : customAssetModelProviders) {
+            for (AssetDescriptor assetDescriptor : provider.getAssetDescriptors()) {
+                assetTypeInfos.add(new AssetTypeInfo(assetDescriptor, info.getAttributeDescriptors(), info.getMetaItemDescriptors(), info.getValueDescriptors()));
+            }
+        }
+
+        return assetTypeInfos.toArray(new AssetTypeInfo[0]);
+    }
+
+    private static AssetTypeInfo createCustomAssetTypeInfo(AssetDescriptor<?> assetDescriptor) {
+        AssetTypeInfo info = assetInfoMap.get(Asset.class);
+        return new AssetTypeInfo(assetDescriptor, info.getAttributeDescriptors(), info.getMetaItemDescriptors(), info.getValueDescriptors());
+
     }
 
     public static Class<? extends Asset<?>>[] getAssetClasses(String parentType) {
@@ -545,7 +570,12 @@ public class ValueUtil {
     }
 
     public static Optional<AssetTypeInfo> getAssetInfo(String assetType) {
-        return getAssetClass(assetType).map(assetClass -> assetInfoMap.get(assetClass));
+        Optional<AssetTypeInfo> optional = getAssetClass(assetType).map(assetClass -> assetInfoMap.get(assetClass));
+        if (optional.isPresent()) {
+            return optional;
+        }
+
+        return Arrays.stream(getCustomAssetInfos()).filter(info ->info.getAssetDescriptor().getName().equals(assetType)).findFirst();
     }
 
     // TODO: Implement ability to restrict which asset types are allowed to be added to a given parent type
