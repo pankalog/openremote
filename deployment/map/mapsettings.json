@@ -19,9 +19,9 @@
       "geocodeUrl": "https://nominatim.openstreetmap.org"
     },
     "manufacturer": {
-      "center": [ 4.352753, 51.961949 ],
+      "center": [ 4.299803, 51.968850 ],
       "bounds" : [ 4.24, 51.89, 4.51, 51.99 ],
-      "zoom": 13,
+      "zoom": 15,
       "minZoom": 10,
       "maxZoom": 19,
       "boxZoom": true,
