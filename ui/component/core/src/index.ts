@@ -329,6 +329,14 @@ export class Manager implements EventProviderFactory {
 
         this._config = normaliseConfig(config);
 
+        /* window.addEventListener('online', () => {
+            console.log("Now got online!");
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("Now went offline!");
+        }) */
+
         let success = await this.loadManagerInfo();
 
         if (this._config.auth === Auth.BASIC) {

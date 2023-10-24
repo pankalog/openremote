@@ -249,6 +249,13 @@ export class OrApp<S extends AppStateKeyed> extends LitElement {
                 const headerUpdater = (activeMenu: string | undefined) => {
                     this._activeMenu = activeMenu;
                 };
+
+                document.addEventListener('visibilitychange', () => {
+                    if(!document.hidden) {
+                        showErrorDialog("Welcome back!", document.body);
+                    }
+                })
+
                 router.hooks({
                     before(done, match) {
                         headerUpdater(match ? match.url.split('/')[0] : undefined);
