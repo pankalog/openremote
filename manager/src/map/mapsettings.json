@@ -1,13 +1,13 @@
 {
   "options" : {
-    "default" : {
-      "center" : [ 4.483118, 51.915767 ],
-      "bounds" : [ 4.24, 51.89, 4.51, 51.99 ],
-      "zoom" : 15,
-      "minZoom" : 0,
-      "maxZoom" : 19,
-      "boxZoom" : false,
-      "geocodeUrl" : "https://nominatim.openstreetmap.org"
+    "default": {
+      "center": [        5.475097,        51.435364      ],
+      "bounds": [        -4.52,        34.84,        29.48,        54.29      ],
+      "zoom": 15,
+      "minZoom": 5,
+      "maxZoom": 19,
+      "boxZoom": false,
+      "geocodeUrl": "https://nominatim.openstreetmap.org"
     },
     "smartcity": {
       "center": [ 4.483118, 51.915767 ],

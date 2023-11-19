@@ -230,12 +230,20 @@ public class State {
         if (reported.containsKey("ts")){
             try{
                 long unixTimestampMillis = Long.parseLong(reported.get("ts").toString());
-                Timestamp deviceTimestamp = Timestamp.from(Instant.ofEpochMilli(unixTimestampMillis));
-                attributes.add(new Attribute<>("lastContact", ValueType.DATE_AND_TIME, deviceTimestamp).setTimestamp(deviceTimestamp.getTime()));
+                Attribute<Date> timestamp = new Attribute<Date>("lastContact", ValueType.DATE_AND_TIME, new Date(unixTimestampMillis));
+                timestamp = timestamp.setTimestamp(unixTimestampMillis);
+                attributes.add(timestamp);
 
 
                 //Update all affected attribute timestamps
-                attributes.forEach(attribute -> attribute.setTimestamp(deviceTimestamp.getTime()));
+                attributes.forEach(attribute -> attribute.setTimestamp(unixTimestampMillis));
+
+                attributes.forEach(attribute -> {
+                    if(attribute.getTimestamp().isEmpty() || !attribute.getTimestamp().get().equals(unixTimestampMillis)) {
+                        long x = attribute.getTimestamp().get();
+                    }
+                });
+
             }catch (Exception e){
                 logger.severe("Failed timestamps");
                 logger.severe(e.toString());

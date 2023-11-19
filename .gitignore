@@ -58,3 +58,6 @@ local.properties
 *.tsbuildinfo
 *~
 *.tar.gz
+**/manager/src/map/
+**/ui/
+manager/src/map/mapdata.mbtiles

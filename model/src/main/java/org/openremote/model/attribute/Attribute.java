@@ -453,8 +453,7 @@ public class Attribute<T> extends AbstractNameValueHolder<T> implements MetaHold
         if (o == null || getClass() != o.getClass()) return false;
         Attribute<?> that = (Attribute<?>) o;
 
-        return Objects.equals(timestamp, that.timestamp)
-            && Objects.equals(name, that.name)
+        return Objects.equals(name, that.name)
             && Objects.equals(type, that.type)
             // Use uninitialized json value if available
             && (valueStr != null && that.valueStr != null ? Objects.equals(valueStr, that.valueStr) : ValueUtil.objectsEqualsWithJSONFallback(value, that.value))

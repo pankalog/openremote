@@ -348,7 +348,7 @@ class TeltonikaMQTTProtocolTest extends Specification implements ManagerContaine
 
         }
 
-        and: "with the correct values within the Asset"
+        and: "with the correct value for External Voltage (Double with multiplier) within the Asset"
 
         conditions.eventually {
             // We cannot check every single attribute, so we are going to use specific attributes that have various quirks in them.
@@ -368,7 +368,29 @@ class TeltonikaMQTTProtocolTest extends Specification implements ManagerContaine
             assert retrievedVoltage.getMeta().containsKey(MetaItemType.LABEL.getName())
             assert retrievedVoltage.getMeta().get(MetaItemType.LABEL.getName()).get().getValue().get() == voltageParam.propertyName
 
-            assert retrievedVoltage.getValueAs(ValueType.NUMBER.getType()).get() == 11922 * Double.parseDouble(voltageParam.multiplier)
+            assert retrievedVoltage.getValue(ValueType.NUMBER.getType()).get() == 11922 * Double.parseDouble(voltageParam.multiplier)
+        }
+        and: "with the correct value for Network Type (Flag with no multiplier, constraints) within the Asset"
+
+        conditions.eventually {
+            // We cannot check every single attribute, so we are going to use specific attributes that have various quirks in them.
+
+            //TODO: Add more parameters, maybe some weird ones like hex,
+
+            //Attribute External Voltage, AVL ID "66"
+            Optional<Attribute<?>> externalVoltage = asset.getAttribute("66");
+            assert externalVoltage.isPresent();
+
+            Attribute<?> retrievedVoltage = externalVoltage.get();
+
+            assert retrievedVoltage.getValue().isPresent();
+            TeltonikaParameter voltageParam = params.get("66")
+            assert retrievedVoltage.getType() == ValueType.NUMBER;
+            assert retrievedVoltage.getMeta().containsKey(MetaItemType.STORE_DATA_POINTS.getName())
+            assert retrievedVoltage.getMeta().containsKey(MetaItemType.LABEL.getName())
+            assert retrievedVoltage.getMeta().get(MetaItemType.LABEL.getName()).get().getValue().get() == voltageParam.propertyName
+
+            assert retrievedVoltage.getValue(ValueType.NUMBER.getType()).get() == 11922 * Double.parseDouble(voltageParam.multiplier)
         }
 
 
@@ -475,6 +497,8 @@ class TeltonikaMQTTProtocolTest extends Specification implements ManagerContaine
         client.removeAllMessageConsumers()
         client.disconnect()
     }
+
+
 
     //TODO: Write a test for AssetStateDuration (Multiple trip payloads etc.)
 

@@ -707,7 +707,7 @@
         "bytes":"1",
         "type":"Unsigned",
         "min":"0",
-        "max":"1",
+        "max":"100",
         "multiplier":"-",
         "units":"-",
         "description":"0 - 3G 1 - GSM 2 - 4G 3 - LTE CAT M1 4 - LTE CAT NB1 99 - Unknown",

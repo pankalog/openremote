@@ -212,7 +212,7 @@ public class ValueUtil {
         try {
             return Optional.of(JSON.readValue(jsonString, JSON.constructType(type)));
         } catch (Exception e) {
-            LOG.log(Level.WARNING, "Failed to parse JSON", e);
+//            LOG.log(Level.WARNING, "Failed to parse JSON", e);
         }
         return Optional.empty();
     }
@@ -585,7 +585,7 @@ public class ValueUtil {
         return Optional.ofNullable(assetInfoMap.get(assetType.getSimpleName()));
     }
 
-    public static Optional<AssetTypeInfo> getAssetInfo(String assetType) {
+    public static Optional<AssetTypeInfo>getAssetInfo(String assetType) {
         return Optional.ofNullable(assetInfoMap.get(assetType));
     }
 
