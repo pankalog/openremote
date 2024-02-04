@@ -30,6 +30,7 @@ import {KpiWidget} from "./widgets/kpi-widget";
 import {MapWidget} from "./widgets/map-widget";
 import {AttributeInputWidget} from "./widgets/attribute-input-widget";
 import {TableWidget} from "./widgets/table-widget";
+import {SessionWidget} from "./widgets/session-widget";
 
 // language=CSS
 const styling = css`
@@ -214,6 +215,7 @@ export function registerWidgetTypes() {
     widgetTypes.set("image", ImageWidget.getManifest());
     widgetTypes.set("kpi", KpiWidget.getManifest());
     widgetTypes.set("map", MapWidget.getManifest());
+    widgetTypes.set("session", SessionWidget.getManifest());
     widgetTypes.set("attributeinput", AttributeInputWidget.getManifest());
     widgetTypes.set("table", TableWidget.getManifest());
 }

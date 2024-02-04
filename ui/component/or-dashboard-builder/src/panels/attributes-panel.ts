@@ -193,6 +193,7 @@ export class AttributesPanel extends LitElement {
     }
 
     protected async loadAssets(): Promise<Asset[]> {
+        if(true) {
         if(this.attributeRefs.filter(ar => !this.getLoadedAsset(ar)).length > 0) {
             const assets = await this.fetchAssets(this.attributeRefs);
             this.loadedAssets = assets;
